@@ -4,7 +4,7 @@ Extract every email address from PDF files.
 
 ## Prerequisites
 
-The program can extract text from almost every PDF file, but for some scanned files, you'll need to install Tesseract. Follow the instructions [here](https://github.com/UB-Mannheim/tesseract/wiki) to install it. Place Tesseract in `C:\Program Files` on Windows or edit `extract-mails-from-pdf.py`:
+The program can extract text from almost every PDF file, but for photos or some scanned files, you'll need to install Tesseract. Follow the instructions [here](https://github.com/UB-Mannheim/tesseract/wiki) to install it. Place Tesseract in `C:\Program Files` on Windows or edit `extract-mails-from-pdf.py`:
 
 ```python
 pytesseract.pytesseract.tesseract_cmd = r"PATH/TO/Tesseract-OCR/tesseract.exe"
