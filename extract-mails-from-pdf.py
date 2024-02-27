@@ -3,6 +3,7 @@ import re
 import os
 from pdf2image import convert_from_path
 import pytesseract
+from utils import colors
 
 
 email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
@@ -22,9 +23,8 @@ def get_pdf_files(folder_path):
     return pdf_files
 
 
-    
 def get_text_from_scanned_pdf(pdf_file):
-    print(f"Extracting text from scanned pdf: {pdf_file}")
+    print(f"Extracting text from scanned pdf: {os.path.basename(pdf_file)}")
     images = convert_from_path(pdf_file)
     text = ""
     for i in range(len(images)):
@@ -35,15 +35,23 @@ def get_text_from_scanned_pdf(pdf_file):
 def extract_emails(pdf_files):
     emails = []
     for file in pdf_files:
-        print(f"Extracting emails from pdf file: {os.path.basename(file)}")
-        with open(file, "rb") as f:
-            reader = PyPDF2.PdfReader(f)
-            for page_num in range(len(reader.pages)):
-                page = reader.pages[page_num]
-                text = page.extract_text()
-                found_emails = re.findall(email_pattern, text)
-                for email in found_emails:
-                    emails.append((email, os.path.basename(file)))  # get the file name, not the path
+        print(f"Extracting emails from file: {os.path.basename(file)}")
+        try:
+            with open(file, "rb") as f:
+                reader = PyPDF2.PdfReader(f)
+                for page_num in range(len(reader.pages)):
+                    page = reader.pages[page_num]
+                    text = page.extract_text()
+                    if not text:
+                        text = get_text_from_scanned_pdf(file)
+                    found_emails = re.findall(email_pattern, text)
+                    for email in found_emails:
+                        emails.append((email, os.path.basename(file)))
+        except Exception as e:
+            print(
+                f"{colors.RED}Error extracting emails from {os.path.basename(file)}: {e} {colors.END}"
+            )
+
     return emails
 
 
@@ -67,8 +75,8 @@ def main():
     emails = extract_emails(pdf_files)
     write_to_csv(emails, folder_path)
 
-    print("Done")
-    print(f"Emails are saved in {folder_path}/emails.csv")
+    print(f"{colors.GREEN}Done{colors.END}")
+    print(f"{colors.GREEN}Emails are saved in {folder_path}/emails.csv{colors.END}")
 
 
 if __name__ == "__main__":
