@@ -4,46 +4,20 @@ import os
 import sys
 from pdf2image import convert_from_path
 import pytesseract
-from utils import colors
+from utils import colors, email_pattern, ignored_domains
 
-# Check if Tesseract is installed
-# def check_tesseract_installation():
-#     try:
-#         # Try to execute a simple command to check if Tesseract is installed
-#         result = os.system("tesseract --version")
-#         if result != 0:
-#             print("Tesseract is not installed. Do you want to install it? (yes/no)")
-#             user_input = input(">> ")
-#             if user_input.lower() == "yes":
-#                 print("Please install Tesseract OCR by following the instructions at 'https://github.com/UB-Mannheim/tesseract/wiki'")
-#             else:
-#                 print("Tesseract OCR is required for this program to run. Exiting...")
-#                 sys.exit(1)
-#     except Exception as e:
-#         print(f"Error checking Tesseract installation: {e}")
-#         sys.exit(1)
-
-# check_tesseract_installation()
-
-pytesseract.pytesseract.tesseract_cmd = r"C:/Program Files/Tesseract-OCR/tesseract.exe"
-
+# Set Poppler and Tesseract path
 # Check if we're running as a PyInstaller bundle
 if getattr(sys, "frozen", False):
-    # If we are, set the base path to the _MEIPASS folder
     base_path = sys._MEIPASS
 else:
-    # Otherwise, set it to the current directory
     base_path = os.path.dirname(os.path.abspath(__file__))
 
-poppler_path = os.path.join(
+_poppler_path = os.path.join(
     base_path, "resources", "Poppler-24.02.0-0", "poppler-24.02.0", "Library", "bin"
 )
-
-email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
-ignored_domains = [
-    r"\b[A-Za-z0-9._%+-]+@revvity.com\b",
-    r"\b[A-Za-z0-9._%+-]+@perkinelmer.com\b",
-]
+_tesseract_path = os.path.join(base_path, "resources", "Tesseract-OCR", "tesseract.exe")
+pytesseract.pytesseract.tesseract_cmd = _tesseract_path
 
 
 def get_pdf_files(folder_path):
@@ -62,17 +36,17 @@ def get_pdf_files(folder_path):
                 if file.endswith(".pdf"):
                     pdf_files.append(os.path.join(root, file))
 
-        print(f"{colors.BLUE}Found {len(pdf_files)} pdf files{colors.END}")
+        print(f"{colors.INFO + colors.BOLD}Found {len(pdf_files)} pdf files{colors.END}")
 
         return pdf_files
 
     except Exception as e:
-        print(f"{colors.RED}Error getting pdf files: {e}{colors.END}")
+        print(f"{colors.DANGER}Error getting pdf files: {e}{colors.END}")
         return []
 
 
 def get_text_from_scanned_pdf(pdf_file):
-    images = convert_from_path(pdf_file, poppler_path=poppler_path)
+    images = convert_from_path(pdf_file, poppler_path=_poppler_path)
     text = ""
     for i in range(len(images)):
         text += pytesseract.image_to_string(images[i])
@@ -83,7 +57,7 @@ def extract_emails(pdf_files):
     emails = []
     for file in pdf_files:
         print(
-            f"{colors.BLUE}Extracting emails from file: {os.path.basename(file)}{colors.END}"
+            f"{colors.INFO + colors.BOLD}Extracting emails from file: {os.path.basename(file)}{colors.END}"
         )
         try:
             with open(file, "rb") as f:
@@ -95,7 +69,7 @@ def extract_emails(pdf_files):
                     if not text:
                         if page_num == 0:
                             print(
-                                f"{colors.YELLOW}Converting scanned pdf, it can take a bit longer{colors.END}"
+                                f"{colors.WARNING}Converting scanned pdf, it can take a bit longer{colors.END}"
                             )
                         text = get_text_from_scanned_pdf(file)
                     found_emails = re.findall(email_pattern, text)
@@ -104,9 +78,23 @@ def extract_emails(pdf_files):
                             emails.append((email.lower(), os.path.basename(file)))
         except Exception as e:
             print(
-                f"{colors.RED}Error extracting emails from {os.path.basename(file)}: {e} {colors.END}"
+                f"{colors.DANGER}Error extracting emails from {os.path.basename(file)}: {e} {colors.END}"
             )
 
+    return emails
+
+
+def remove_ignored_domains(emails):
+    mails_to_remove = []
+    for email in emails:
+        for domain in ignored_domains:
+            if re.search(domain, email[0]):
+                mails_to_remove.append(email)
+                break
+            
+    for mail in mails_to_remove:
+        emails.remove(mail)
+        
     return emails
 
 
@@ -116,10 +104,7 @@ def write_to_csv(emails, folder_path):
     with open(os.path.join(folder_path, "emails.csv"), "w+") as f:
         f.write("Emails,found in\n")
         for email in emails:
-            if not re.match(ignored_domains[0], email[0]) and not re.match(
-                ignored_domains[1], email[0]
-            ):
-                f.write(f"{email[0]},{email[1]}\n")
+            f.write(f"{email[0]},{email[1]}\n")
 
 
 def main():
@@ -132,10 +117,11 @@ def main():
         return
 
     emails = extract_emails(pdf_files)
-    write_to_csv(emails, folder_path)
+    filtered_emails = remove_ignored_domains(emails)
+    write_to_csv(filtered_emails, folder_path)
 
-    print(f"{colors.GREEN}Done{colors.END}")
-    print(f"{colors.GREEN}Emails are saved in {folder_path}/emails.csv{colors.END}")
+    print(f"{colors.SUCCESS}Done{colors.END}")
+    print(f"{colors.SUCCESS}Emails are saved in {folder_path}/emails.csv{colors.END}")
 
     input("Press Enter to exit...")
 
