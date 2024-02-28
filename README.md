@@ -1,6 +1,6 @@
 # Email Extractor from PDF
 
-Extract every email address from PDF files.
+Extract every email address from PDF files. For scanned files, it converts every page into a photo, then uses Tesseract to extract text from the photo.
 
 ## Prerequisites
 
