@@ -14,7 +14,7 @@ pytesseract.pytesseract.tesseract_cmd = r"PATH/TO/Tesseract-OCR/tesseract.exe"
 ## How to use
 1. Build an exe with: 
 ```
-pyinstaller --noconfirm --onedir --console --add-data "C:/Users/kacpe/Documents/Programming/Python/extract-mails-from-pdf/resources;resources/"  "C:/Users/kacpe/Documents/Programming/Python/extract-mails-from-pdf/extract-mails-from-pdf.py"
+pyinstaller --noconfirm --onedir --console --add-data "PATH/TO/PROJECT/resources;resources/"  "PATH/TO/PROJECT/extract-mails-from-pdf.py"
 ```  
 or run it from command line.
 
